@@ -1005,14 +1005,17 @@ class TypeInfo_Class : TypeInfo
     {
         foreach (m; ModuleInfo)
         {
-          if (m)
-            //writefln("module %s, %d", m.name, m.localClasses.length);
-            foreach (c; m.localClasses)
+            if (m)
             {
-                if (c is null) continue;
-                //writefln("\tclass %s", c.name);
-                if (c.name == classname)
-                    return c;
+                //writefln("module %s, %d", m.name, m.localClasses.length);
+                foreach (c; m.localClasses)
+                {
+                    if (c is null)
+                        continue;
+                    //writefln("\tclass %s", c.name);
+                    if (c.name == classname)
+                        return c;
+                }
             }
         }
         return null;
@@ -3167,9 +3170,15 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 {
     if (a1.length != a2.length)
         return false;
-    foreach(i, a; a1)
+
+    // This is function is used as a compiler intrinsic and explicitly written
+    // in a lowered flavor to use as few CTFE instructions as possible.
+    auto idx = 0;
+    auto length = a1.length;
+
+    for(;idx < length;++idx)
     {
-        if (a != a2[i])
+        if (a1[idx] != a2[idx])
             return false;
     }
     return true;
@@ -3200,7 +3209,15 @@ struct Test
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
-    return core.internal.hash.hashOf((cast(void*)&arg)[0 .. T.sizeof], seed);
+    return core.internal.hash.hashOf(arg, seed);
+}
+
+unittest
+{
+    // Issue # 16654 / 16764
+    auto a = [1];
+    auto b = a.dup;
+    assert(hashOf(a) == hashOf(b));
 }
 
 bool _xopEquals(in void*, in void*)
