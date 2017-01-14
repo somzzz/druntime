@@ -3267,7 +3267,7 @@ private void _enforceNoOverlap(const char[] action,
     throw new Error(msg);
 }*/
 
-D _d_arraycopyT(S, D)(S from, D to, uint size)
+ref D _d_arraycopyT(S, D)(S from, D to)
 {
     import core.stdc.string;
 
@@ -3277,7 +3277,7 @@ D _d_arraycopyT(S, D)(S from, D to, uint size)
 
 
     (() @trusted => memcpy(cast(void*)to.ptr, from.ptr, to.length * size))();
-    return to;
+    return *to;
 }
 
 
