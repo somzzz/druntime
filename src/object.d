@@ -3241,17 +3241,23 @@ template RTInfo(T)
     enum RTInfo = null;
 }
 
-ref D _d_arraycopyT(S, D)(D to, S from)
+void _d_arraycopyT(S, D)(auto ref D to, S from)
 {
-    import core.stdc.string;
+/*    import core.stdc.string;
 
     //void[] toPtr = cast(void[]) to.ptr;
     //void[] fromPtr = cast(void[]) from.ptr;
-   // enforceRawArraysConformable("copy", size, fromPtr, toPtr);
+    //enforceRawArraysConformable("copy", size, fromPtr, toPtr);
 
+    if(!__ctfe)
+    {
+        (() @trusted => memcpy(cast(void*)to.ptr, cast(void*)from.ptr, to.sizeof))();
+    }*/
 
-    (() @trusted => memcpy(cast(void*)to.ptr, from.ptr, to.length * size))();
-    return to;
+    for (size_t i = 0; i < to.length; i++)
+    {
+        *(cast(D*)to.ptr + i) = from[i];
+    }  
 }
 
 
