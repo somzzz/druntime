@@ -3256,7 +3256,7 @@ void _d_arraycopyT(S, D)(auto ref D to, S from)
 
     for (size_t i = 0; i < to.length; i++)
     {
-        *(cast(D*)to.ptr + i) = from[i];
+        to[i] = from[i];
     }  
 }
 
