@@ -3243,21 +3243,11 @@ template RTInfo(T)
 
 void _d_arraycopyT(S, D)(auto ref D to, S from)
 {
-/*    import core.stdc.string;
-
-    //void[] toPtr = cast(void[]) to.ptr;
-    //void[] fromPtr = cast(void[]) from.ptr;
-    //enforceRawArraysConformable("copy", size, fromPtr, toPtr);
-
-    if(!__ctfe)
-    {
-        (() @trusted => memcpy(cast(void*)to.ptr, cast(void*)from.ptr, to.sizeof))();
-    }*/
-
-    for (size_t i = 0; i < to.length; i++)
-    {
-        to[i] = from[i];
-    }  
+    assert(!__ctfe);
+    
+    //if (!__ctfe) {
+    import core.stdc.string;
+    (() @trusted => memcpy(cast(void*)to.ptr, cast(void*)from.ptr, to.length))();
 }
 
 
