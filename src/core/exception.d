@@ -47,17 +47,17 @@ unittest
  */
 class AssertError : Error
 {
-    @safe pure nothrow this( string file, size_t line )
+    @safe pure nothrow @nogc this( string file, size_t line )
     {
         this(cast(Throwable)null, file, line);
     }
 
-    @safe pure nothrow this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    @safe pure nothrow @nogc this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
         this( "Assertion failure", file, line, next);
     }
 
-    @safe pure nothrow this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    @safe pure nothrow @nogc this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
         super( msg, file, line, next );
     }
@@ -385,11 +385,10 @@ unittest
 //       set by the main thread during program initialization.
 private __gshared AssertHandler _assertHandler = null;
 
-
 /**
 Gets/sets assert hander. null means the default handler is used.
 */
-alias AssertHandler = void function(string file, size_t line, string msg) nothrow;
+alias AssertHandler = void function(string file, size_t line, string msg) nothrow @nogc;
 
 /// ditto
 @property AssertHandler assertHandler() @trusted nothrow @nogc
@@ -584,6 +583,25 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
 {
     // Consider making this a compile time check.
     throw staticError!SwitchError(file, line, null);
+}
+
+// Compiler lowers final switch default case to this (which is a runtime error)
+void _d_assert_msgT()(string msg, string file, uint line) @trusted pure
+{
+    static bool hasHandler()
+    {
+        return !!_assertHandler;
+    }
+
+    static void callHandler(string file, uint line, string msg)
+    {
+        (cast(void function(string, size_t, string) pure nothrow @nogc) &_assertHandler)(file, line, msg);
+    }
+    
+    if (!(cast(bool function() pure nothrow @nogc) &hasHandler)())
+        throw staticError!AssertError(msg, file, line);
+    else
+        (cast(void function(string, size_t, string) pure nothrow @nogc) &callHandler)(file, line, msg);
 }
 
 /**

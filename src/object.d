@@ -3982,6 +3982,13 @@ void __switch_error()(string file = __FILE__, size_t line = __LINE__)
     __switch_errorT(file, line);
 }
 
+void __dassert_msg(T)(T msg, string file, uint line)
+{
+    import core.exception : _d_assert_msgT;
+
+    _d_assert_msgT(((msg) @trusted => cast(string) msg)(msg), file, line);
+}
+
 // Helper functions
 
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
