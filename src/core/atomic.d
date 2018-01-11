@@ -1416,7 +1416,7 @@ if(__traits(isFloating, T))
 
 version( unittest )
 {
-    void testCAS(T)( T val ) pure nothrow @nogc @trusted
+    void testCAS(T)( T val ) pure @nogc @trusted
     in
     {
         assert(val !is T.init);
@@ -1435,7 +1435,7 @@ version( unittest )
         assert( atom is val, T.stringof );
     }
 
-    void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)( T val = T.init + 1 ) pure nothrow @nogc @trusted
+    void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)( T val = T.init + 1 ) pure @nogc @trusted
     {
         T         base = cast(T) 0;
         shared(T) atom = cast(T) 0;
@@ -1450,14 +1450,14 @@ version( unittest )
     }
 
 
-    void testType(T)( T val = T.init + 1 ) pure nothrow @nogc @safe
+    void testType(T)( T val = T.init + 1 ) pure @nogc @safe
     {
         testCAS!(T)( val );
         testLoadStore!(MemoryOrder.seq, T)( val );
         testLoadStore!(MemoryOrder.raw, T)( val );
     }
 
-    @safe pure nothrow unittest
+    @safe pure  unittest
     {
         testType!(bool)();
 

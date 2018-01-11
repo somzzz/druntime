@@ -585,12 +585,30 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
     throw staticError!SwitchError(file, line, null);
 }
 
+
 // Compiler lowers final switch default case to this (which is a runtime error)
-void _d_assert_msgT()(string msg, string file, uint line) @trusted pure
+void _d_assert_msgT(string msg, string file, uint line) @trusted @nogc pure
 {
+    auto getHandler()
+    {
+        return (() => _assertHandler)();
+    }
+
+    if( getHandler() is null )
+        throw staticError!AssertError(msg, file, line);
+    auto func = cast(void function(string, size_t, string) pure nothrow @nogc) (getHandler());
+    func(file, line, msg);
+}
+/*
+// Compiler lowers final switch default case to this (which is a runtime error)
+void _d_assert_msg(string msg, string file, uint line) @trusted pure
+{
+    if( _assertHandler is null )
+        throw new AssertError( file, line );
+    _assertHandler( file, line, null);
     static bool hasHandler()
     {
-        return !!_assertHandler;
+        return !!(() => _assertHandler)();
     }
 
     static void callHandler(string file, uint line, string msg)
@@ -599,11 +617,11 @@ void _d_assert_msgT()(string msg, string file, uint line) @trusted pure
     }
     
     if (!(cast(bool function() pure nothrow @nogc) &hasHandler)())
-        throw staticError!AssertError(msg, file, line);
+       throw staticError!AssertError(msg, file, line);
     else
         (cast(void function(string, size_t, string) pure nothrow @nogc) &callHandler)(file, line, msg);
 }
-
+*/
 /**
  * A callback for unicode errors in D.  A $(LREF UnicodeException) will be thrown.
  *

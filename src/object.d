@@ -3982,11 +3982,10 @@ void __switch_error()(string file = __FILE__, size_t line = __LINE__)
     __switch_errorT(file, line);
 }
 
-void __dassert_msg(T)(T msg, string file, uint line)
+void __dassert_msg(T)(T msg, string file, uint line) @trusted @nogc pure
 {
     import core.exception : _d_assert_msgT;
-
-    _d_assert_msgT(((msg) @trusted => cast(string) msg)(msg), file, line);
+    _d_assert_msgT((() @trusted => cast(string)msg)(), file, line);
 }
 
 // Helper functions
