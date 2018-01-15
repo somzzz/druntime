@@ -587,17 +587,31 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
 
 
 // Compiler lowers final switch default case to this (which is a runtime error)
-void _d_assert_msgT(string msg, string file, uint line) @trusted @nogc pure nothrow
+void _d_assert_msgT()(string msg, string file, uint line) @trusted @nogc pure nothrow
 {
-    static auto getHandler()
-    {
-        return (() => _assertHandler)();
-    }
+    alias Fail = void function(string, size_t, string) pure nothrow @nogc;
+    static void doThrow(string msg, string file, uint line) { throw new AssertError(msg, file, line); }
+    auto doThrowImpl = cast(void function(string msg, string file, uint line) @nogc pure nothrow) &doThrow;
 
-    if( getHandler() is null )
-        throw staticError!AssertError(msg, file, line);
-    auto func = cast(void function(string, size_t, string) pure nothrow @nogc) (getHandler());
-    func(file, line, msg);
+    if (!__ctfe)
+    {
+        static getHandler() pure
+        {
+            static impl() { return _assertHandler; }
+            auto pureImpl = cast(Fail function() pure nothrow @nogc) &impl;
+            return pureImpl();
+        }
+
+        if( getHandler() is null )
+            throw staticError!AssertError(msg, file, line);
+        auto func = getHandler();
+        func(file, line, msg);
+    }
+    else
+    {
+        static assert(0, msg);
+        //doThrowImpl(msg, file, line);
+    }
 }
 /*
 // Compiler lowers final switch default case to this (which is a runtime error)
