@@ -587,9 +587,9 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
 
 
 // Compiler lowers final switch default case to this (which is a runtime error)
-void _d_assert_msgT(string msg, string file, uint line) @trusted @nogc pure
+void _d_assert_msgT(string msg, string file, uint line) @trusted @nogc pure nothrow
 {
-    auto getHandler()
+    static auto getHandler()
     {
         return (() => _assertHandler)();
     }
