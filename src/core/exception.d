@@ -609,8 +609,8 @@ void _d_assert_msgT()(string msg, string file, uint line) @trusted @nogc pure no
     }
     else
     {
-        static assert(0, msg);
-        //doThrowImpl(msg, file, line);
+        //static assert(0, msg);
+        doThrowImpl(msg, file, line);
     }
 }
 /*
