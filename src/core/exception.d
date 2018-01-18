@@ -43,79 +43,6 @@ unittest
 
 
 /**
- * Thrown on an assert error.
- */
-class AssertError : Error
-{
-    @safe pure nothrow @nogc this( string file, size_t line )
-    {
-        this(cast(Throwable)null, file, line);
-    }
-
-    @safe pure nothrow @nogc this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
-    {
-        this( "Assertion failure", file, line, next);
-    }
-
-    @safe pure nothrow @nogc this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
-    {
-        super( msg, file, line, next );
-    }
-}
-
-unittest
-{
-    {
-        auto ae = new AssertError("hello", 42);
-        assert(ae.file == "hello");
-        assert(ae.line == 42);
-        assert(ae.next is null);
-        assert(ae.msg == "Assertion failure");
-    }
-
-    {
-        auto ae = new AssertError(new Exception("It's an Exception!"));
-        assert(ae.file == __FILE__);
-        assert(ae.line == __LINE__ - 2);
-        assert(ae.next !is null);
-        assert(ae.msg == "Assertion failure");
-    }
-
-    {
-        auto ae = new AssertError(new Exception("It's an Exception!"), "hello", 42);
-        assert(ae.file == "hello");
-        assert(ae.line == 42);
-        assert(ae.next !is null);
-        assert(ae.msg == "Assertion failure");
-    }
-
-    {
-        auto ae = new AssertError("msg");
-        assert(ae.file == __FILE__);
-        assert(ae.line == __LINE__ - 2);
-        assert(ae.next is null);
-        assert(ae.msg == "msg");
-    }
-
-    {
-        auto ae = new AssertError("msg", "hello", 42);
-        assert(ae.file == "hello");
-        assert(ae.line == 42);
-        assert(ae.next is null);
-        assert(ae.msg == "msg");
-    }
-
-    {
-        auto ae = new AssertError("msg", "hello", 42, new Exception("It's an Exception!"));
-        assert(ae.file == "hello");
-        assert(ae.line == 42);
-        assert(ae.next !is null);
-        assert(ae.msg == "msg");
-    }
-}
-
-
-/**
  * Thrown on finalize error.
  */
 class FinalizeError : Error
@@ -383,7 +310,6 @@ unittest
 //       behavior should occur within the handler itself.  This delegate
 //       is __gshared for now based on the assumption that it will only
 //       set by the main thread during program initialization.
-private __gshared AssertHandler _assertHandler = null;
 
 /**
 Gets/sets assert hander. null means the default handler is used.
@@ -434,7 +360,8 @@ extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ ) 
 {
     if( _assertHandler is null )
         throw new AssertError( file, line );
-    _assertHandler( file, line, null);
+    auto fptr = _assertHandler();
+    fptr( file, line, null );
 }
 
 
@@ -452,7 +379,8 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow
 {
     if( _assertHandler is null )
         throw new AssertError( msg, file, line );
-    _assertHandler( file, line, msg );
+    auto fptr = _assertHandler();
+    fptr( file, line, msg );
 }
 
 
@@ -584,9 +512,7 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
     // Consider making this a compile time check.
     throw staticError!SwitchError(file, line, null);
 }
-
-
-// Compiler lowers final switch default case to this (which is a runtime error)
+/*
 void _d_assert_msgT()(string msg, string file, uint line) @trusted @nogc pure nothrow
 {
     alias Fail = void function(string, size_t, string) pure nothrow @nogc;
@@ -613,6 +539,7 @@ void _d_assert_msgT()(string msg, string file, uint line) @trusted @nogc pure no
         doThrowImpl(msg, file, line);
     }
 }
+*/
 /*
 // Compiler lowers final switch default case to this (which is a runtime error)
 void _d_assert_msg(string msg, string file, uint line) @trusted pure
@@ -733,7 +660,7 @@ extern (C)
 }
 
 // TLS storage shared for all errors, chaining might create circular reference
-private void[128] _store;
+private __gshared void[128] _store;
 
 // only Errors for now as those are rarely chained
 private T staticError(T, Args...)(auto ref Args args)

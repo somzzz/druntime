@@ -1923,6 +1923,78 @@ class Error : Throwable
     Throwable   bypassedException;
 }
 
+class AssertError : Error
+{
+    @safe pure nothrow @nogc this( string file, size_t line )
+    {
+        this(cast(Throwable)null, file, line);
+    }
+
+    @safe pure nothrow @nogc this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    {
+        this( "Assertion failure", file, line, next);
+    }
+
+    @safe pure nothrow @nogc this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    {
+        super( msg, file, line, next );
+    }
+}
+
+
+unittest
+{
+    {
+        auto ae = new AssertError("hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError(new Exception("It's an Exception!"));
+        assert(ae.file == __FILE__);
+        assert(ae.line == __LINE__ - 2);
+        assert(ae.next !is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError(new Exception("It's an Exception!"), "hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next !is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError("msg");
+        assert(ae.file == __FILE__);
+        assert(ae.line == __LINE__ - 2);
+        assert(ae.next is null);
+        assert(ae.msg == "msg");
+    }
+
+    {
+        auto ae = new AssertError("msg", "hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next is null);
+        assert(ae.msg == "msg");
+    }
+
+    {
+        auto ae = new AssertError("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next !is null);
+        assert(ae.msg == "msg");
+    }
+}
+
+
+
 unittest
 {
     {
@@ -3978,16 +4050,74 @@ unittest
 // Old implementation is in core/exception.d
 void __switch_error()(string file = __FILE__, size_t line = __LINE__)
 {
-    import core.exception : __switch_errorT;
-    __switch_errorT(file, line);
+    //import core.exception : __switch_errorT;
+    //__switch_errorT(file, line);
 }
 
-void __dassert_msg(T)(T msgT, string file, uint line) @trusted @nogc pure
+alias AssertHandler2 = void function(string file, size_t line, string msg) nothrow @nogc;
+
+@property ref AssertHandler2 _assertHandler()() { static __gshared AssertHandler2 result = null; return result; }
+
+void __dassert_msg(T, string _1 = __FILE__, uint _2 = __LINE__)(T msgT, string file, uint line) @trusted @nogc
 {
-    import core.exception : _d_assert_msgT;
-    _d_assert_msgT((() @trusted => cast(string)msg)(), file, line);
 }
+/*
 
+void __dassert_msg(T, string _1 = __FILE__, uint _2 = __LINE__)(T msgT, string file, uint line) @trusted @nogc pure
+{
+    //import core.exception : _d_assert_msgT;
+    //_d_assert_msgT((() @trusted => cast(string)msg)(), file, line);
+
+    auto msg = (() @trusted => cast(string)msgT)();
+
+    alias Fail = void function(string, size_t, string) pure nothrow @nogc;
+
+    if (!__ctfe)
+    {
+        static getHandler() pure
+        {
+            static impl() {
+                auto fptr = _assertHandler!()();
+                return fptr;
+            }
+            auto pureImpl = cast(Fail function() pure nothrow @nogc) &impl;
+            return pureImpl();
+        }
+
+        if(getHandler() is null)
+        {
+            //throw staticErrorr!AssertError(msg, file, line);
+            // TLS storage shared for all errors, chaining might create circular reference
+            static __gshared void[128] _storee;
+
+            static AssertError staticErrorr(string msg, string file, uint line)
+            {
+                static AssertError get()
+                {
+                    _storee[0 .. __traits(classInstanceSize, AssertError)] = typeid(AssertError).initializer[];
+                    return cast(AssertError) _storee.ptr;
+                }
+                auto res = (cast(AssertError function() @trusted pure nothrow @nogc) &get)();
+                res.__ctor(msg, file, line);
+                return res;
+            }
+            throw staticErrorr(msg, file, line);
+        }
+        auto func = getHandler();
+        func(file, line, msg);
+    }
+    else
+    {
+        static void doThrow(string msg, string file, uint line)
+        {
+            throw new AssertError(msg, file, line);
+        }
+        auto doThrowImpl = cast(void function(string msg, string file, uint line) @nogc pure nothrow) &doThrow;
+        //static assert(0, msg);
+        doThrowImpl(msg, file, line);
+    }
+}
+*/
 // Helper functions
 
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
